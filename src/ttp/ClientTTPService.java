@@ -14,15 +14,11 @@ public class ClientTTPService extends TTPservice{
 	
 	private SendWithTimer timer;
 	
-	private String data;
-	
 	public ClientTTPService(String srcaddr, short srcPort){
 		super(srcaddr, srcPort);
 		SYN = 0;
 		ACK = 0;
 		connectStatus = 0;
-		
-		data = "Hello Server";
 	}
 	
 	public void connect (String dstaddr, short dstPort) {
@@ -37,7 +33,7 @@ public class ClientTTPService extends TTPservice{
 			System.out.println("Sending SYN data");
 			clientSendData(null, (short)1, (char)0, 5);//SYN
 			
-			Datagram datagram = receiveData(50, true);
+			Datagram datagram = receiveData();
 			timer.interrupt();
 			timer = null;
 			if (datagram == null) {
@@ -57,8 +53,6 @@ public class ClientTTPService extends TTPservice{
 				SYN = expectSYN;
 			}
 		}
-		
-		//while (connectStatus == 1) {
 				
 		System.out.println("Sending SYN + ACK");
 			
@@ -69,22 +63,21 @@ public class ClientTTPService extends TTPservice{
 		System.out.println("connectioin established");
 	}
 
-	public void clientSendData(Object data, short dataLength, char category, int count) {
+	public void send(Object data, short dataLength) {
+		timer = sendData(ACK, SYN, dstaddr, dstport, data, dataLength, (char)3, 5);
+		expectSYN = SYN + dataLength;
+	}
+	
+	private void clientSendData(Object data, short dataLength, char category, int count) {
 		timer = sendData(ACK, SYN, dstaddr, dstport, data, dataLength, category, count);
 		expectSYN = SYN + dataLength;
 	}
 	
-	public void clientSendData(Object data, short dataLength, int count) {
-		timer = sendData(ACK, SYN, dstaddr, dstport, data, dataLength, (char)3, count);
-		
-		expectSYN = SYN + dataLength;
-	}
-
-	public void clientReceiveData() {
+	public Object receive() {
 		if (connectStatus == 2) {
-			Datagram datagram = receiveData(0,false);
+			Datagram datagram = receiveData();
 			if (datagram == null) {
-				return;
+				return null;
 			}
 			
 			TTP ttp = (TTP)datagram.getData();
@@ -97,21 +90,20 @@ public class ClientTTPService extends TTPservice{
 				
 				clientSendData(null, (short)1, (char)2, 1); //SYN + ACK
 				
-			} else {
-			
-				if (ttp.getCategory() == (char)3 && ack == expectSYN) {
-	
+			} else if (ttp.getCategory() == (char)3) {
+				if (ack == expectSYN && ACK == ttp.getSYN()) {
 					ACK = ttp.getSYN() + ttp.getLength();
 					SYN = expectSYN;
-					
-					clientSendData(null, (short)0, (char)3, 5); //SYN + ACK
-				} else {
-					clientSendData(data, (short)data.length(), 5);
+					clientSendData(null, (short)1, (char)3, 5); //ACK
+					return ttp.getData();
 				}
+				clientSendData(null, (short)1, (char)3, 5); //ACK
 			}
 		} else {
 			System.out.println("Please establish the connection first");
 		}
+		
+		return null;
 	}
 	
 	public void clientClose() {
@@ -120,7 +112,7 @@ public class ClientTTPService extends TTPservice{
 		while (connectStatus == 2) {
 			clientSendData(null, (short)1, (char)4, 5); //FIN
 			
-			Datagram datagram = receiveData(50,true);
+			Datagram datagram = receiveData();
 			timer.interrupt();
 			timer = null;
 			if (datagram == null) {
@@ -138,19 +130,16 @@ public class ClientTTPService extends TTPservice{
 			}
 		}
 		
-		while (true) {
+		//while (true) {
 			System.out.println("Sending FIN + ACK");
 				
 			clientSendData(null, (short)1, (char)6, 1); //SYN + ACK
 			
-			Datagram datagram = receiveData(30,true);
-			timer.interrupt();
-			timer = null;
+			//Datagram datagram = receiveData();
+			//timer.interrupt();
+			//timer = null;
 			
-			if (datagram == null) {
-				break;
-			}
-		}
+		//}
 		connectStatus = 6;
 	}
 }

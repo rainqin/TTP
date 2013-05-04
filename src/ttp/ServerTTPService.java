@@ -5,33 +5,29 @@ import datatypes.Datagram;
 
 public class ServerTTPService extends TTPservice{
 	private Hashtable<String, ConDescriptor> clientList;
-	private String data;
-	
 	public ServerTTPService(String srcaddr, short srcPort) {
 		super(srcaddr, srcPort);
 		
 		clientList = new Hashtable<String, ConDescriptor>();
-		
-		data = "Hello Client";
 	
 	}
 	
-	public void serverListen(){
+	public ConDescriptor serverListen(){
 		
-		Datagram datagram = receiveData(0, false);
+		Datagram datagram = receiveData();
 		if (datagram == null) {
-			return;
+			return null;
 		}
 		
 		TTP ttp = (TTP)datagram.getData();
 		System.out.println("Server Receive from client, Category: " + (int)ttp.getCategory());
 		
-		if (ttp.getCategory() == (char)0) { //syn packet
+		if (ttp.getCategory() == (char)0) { 	//syn packet
 			String dstaddr = datagram.getSrcaddr();
 			short dstPort = datagram.getSrcport();
 			
 			ConDescriptor client = new ConDescriptor(srcaddr, dstaddr,
-										srcPort, dstPort, ttp.getSYN(), clientList);
+										srcPort, dstPort, ttp.getSYN());
 			
 			client.setACK(ttp.getSYN() + ttp.getLength());
 			
@@ -48,8 +44,6 @@ public class ServerTTPService extends TTPservice{
 				client.killTimer();
 				
 				client.setACK(ttp.getSYN() + ttp.getLength());
-				//send data
-				serverSendData(client, data, (short)data.length(), (char)3);
 			}
 		} else if (ttp.getCategory() == (char)4) { //FIN
 			System.out.println("Receive FIN");
@@ -80,7 +74,7 @@ public class ServerTTPService extends TTPservice{
 					System.out.println("remove success? " + !clientList.containsKey(client.getKey()));
 				}
 			}	
-		} else {
+		} else if (ttp.getCategory() == (char)3) {									//requset
 			if (clientList.containsKey(datagram.getSrcaddr() + datagram.getSrcport())) {
 				System.out.println("Receive Data From Client");
 				ConDescriptor client = clientList.get(datagram.getSrcaddr() 
@@ -91,24 +85,27 @@ public class ServerTTPService extends TTPservice{
 				
 				if (client.isConnected()) {
 					int ack = ttp.getACK();
-					
+					client.setTempACK(ack);
 					if (ack == client.getExpectSYN()) { //right
 						client.setServerSYN(ack);
 						client.setACK(ttp.getSYN()+ttp.getLength()) ;
-						client.setServerSYN(ack);
-					} else {							//wrong
-						//resend data
-						serverSendData(client, data, (short)data.length(), (char)3);
-					}
+						
+						if (ttp.getData() != null) {
+							client.setData(datagram);
+							return client;
+						}
+						
+					} 
 				} else {
 					serverSendData(client, null, (short)0, (char)1);
 				}
-
 			}
 		}
+		
+		return null;
 	}
 	
-	public int serverSendData(ConDescriptor client, Object data, short dataLength, char category) {
+	private int serverSendData(ConDescriptor client, Object data, short dataLength, char category) {
 		SendWithTimer timer = super.sendData(client.getACK(), client.getServerSYN(), client.getClientAddr(), 
 					   client.getClientPort(), data, dataLength, category, 5);
 		client.setTimer(timer);
@@ -117,7 +114,7 @@ public class ServerTTPService extends TTPservice{
 		return 0;
 	}
 	
-	public int serverSendData(ConDescriptor client, Object data, short dataLength, char category, int count) {
+	private int serverSendData(ConDescriptor client, Object data, short dataLength, char category, int count) {
 		SendWithTimer timer = super.sendData(client.getACK(), client.getServerSYN(), client.getClientAddr(), 
 					   client.getClientPort(), data, dataLength, category, count);
 		client.setTimer(timer);

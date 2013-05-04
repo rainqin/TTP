@@ -18,9 +18,8 @@ public class client {
 	 * @param args
 	 * @throws IOException 
 	 * @throws ClassNotFoundException 
-	 * @throws InterruptedException 
 	 */
-	public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException {
+	public static void main(String[] args) throws IOException, ClassNotFoundException {
 		if(args.length != 2) {
 			printUsage();
 		}
@@ -28,19 +27,19 @@ public class client {
 		System.out.println("Starting client ...");
 		
 		int port = Integer.parseInt(args[0]);
-		ds = new DatagramService(10);
+		ds = new DatagramService(port, 10);
 		
 		Datagram datagram = new Datagram();
 		datagram.setData("Hello World!");
 		datagram.setSrcaddr("128.237.123.88");
-		datagram.setDstaddr("localhost");
+		datagram.setDstaddr("128.237.123.88");
 		datagram.setDstport((short)Integer.parseInt(args[1]));
 		datagram.setSrcport((short)port);
 		
 		ds.sendDatagram(datagram);
 		System.out.println("Sent datagram");
 		
-		datagram = ds.receiveDatagram(0,false);
+		datagram = ds.receiveDatagram();
 		System.out.println("Received " + datagram.getData());
 	}
 	

@@ -13,7 +13,7 @@ public class server {
 
 	private static DatagramService ds;
 	
-	public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException {
+	public static void main(String[] args) throws IOException, ClassNotFoundException {
 
 		if(args.length != 1) {
 			printUsage();
@@ -22,17 +22,17 @@ public class server {
 		System.out.println("Starting Server ...");
 		
 		int port = Integer.parseInt(args[0]);
-		ds = new DatagramService(10);
+		ds = new DatagramService(port, 10);
 		
 		run();
 	}
 
-	private static void run() throws IOException, ClassNotFoundException, InterruptedException {
+	private static void run() throws IOException, ClassNotFoundException {
 
 		Datagram datagram;
 		
 		while(true) {
-			datagram = ds.receiveDatagram(0,false);
+			datagram = ds.receiveDatagram();
 			System.out.println("Received datagram from " + datagram.getSrcaddr() + ":" + datagram.getSrcport() + " Data: " + datagram.getData());
 			Datagram ack = new Datagram();
 			ack.setSrcaddr(datagram.getDstaddr());

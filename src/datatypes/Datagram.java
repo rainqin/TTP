@@ -8,7 +8,6 @@ import java.io.Serializable;
 
 
 // Format of datagram packet
-@SuppressWarnings("serial")
 public class Datagram implements Serializable {
 	
 	// Source IP address
@@ -37,24 +36,6 @@ public class Datagram implements Serializable {
 		super();
 	}
 	
-	public Datagram(String srcaddr, String dstaddr, short srcport,
-			short dstport) {
-		super();
-		this.srcaddr = srcaddr;
-		this.dstaddr = dstaddr;
-		this.srcport = srcport;
-		this.dstport = dstport;
-	}
-	public Datagram( String dstaddr,short dstport, short size, short checksum, Object data) {
-		super();
-		
-		this.dstaddr = dstaddr;
-		
-		this.dstport = dstport;
-		this.size = size;
-		this.checksum = checksum;
-		this.data = data;
-	}
 	public Datagram(String srcaddr, String dstaddr, short srcport,
 			short dstport, short size, short checksum, Object data) {
 		super();

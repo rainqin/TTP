@@ -26,7 +26,7 @@ public abstract class TTPservice {
 		 windowSize = 5;
 		 
 		 try {
-			 datagramService = new DatagramService(srcPort);
+			 datagramService = new DatagramService(srcPort, 0);
 		 } catch (SocketException e) {
 			 System.out.println("TTP Service construction exception");
 		 }
@@ -46,19 +46,14 @@ public abstract class TTPservice {
 		return sendWithTimer;
 	}
 		
-	public Datagram receiveData (int timeout, boolean isTimeOut) {
+	public Datagram receiveData () {
 		try {
-			return datagramService.receiveDatagram(timeout, isTimeOut);
+			return datagramService.receiveDatagram();
 		} catch (ClassNotFoundException e) {
 			System.out.println("TTP Service receiveData exception");
 		} catch (IOException e) {
 			System.out.println("TTP Service receiveData exception");
 		} 
 		return null;
-	}
-	
-	public void closeService() {
-		datagramService.close();
-		System.out.println("TTP Service Closed");
 	}
 }

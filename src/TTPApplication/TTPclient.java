@@ -52,7 +52,7 @@ public class TTPclient {
 		ttps = new ClientTTPService("localhost", (short) srcport);
 		
 		ttps.connect("localhost", (short)dstport);
-		ttps.clientReceiveData();
+		ttps.receive();
 		ttps.clientClose();
 		
 	}

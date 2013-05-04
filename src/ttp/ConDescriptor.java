@@ -1,42 +1,101 @@
 package ttp;
 
-import java.util.Hashtable;
+import datatypes.Datagram;
 
-
-
-public class ConDescriptor {
+public class ConDescriptor extends TTPservice{
 	private String serveraddr;
-	String clientaddr;
+	private String clientaddr;
 	private short serverport;
-	short clientport;
+	private short clientport;
 	private int serverSYN;
 	private int expectSYN;
 	private int ACK;
 	private EndConnectionTimer closeTimer;
 	private boolean connected;
+	private Object data;
+	private DataSegment[] sendData;
+	private int dataLength;
+	private int tempACK;
 	
 	private SendWithTimer timer;
 	
-	public ConDescriptor(String serveraddr, String clientaddr, short serverport, 
-						 short clientport, int clientSYN, Hashtable<String, ConDescriptor> clientList){
+	private int windowBegin;
+	private int windowEnd;
+	private int windowSend;
+	private int WINDOWSIZE;
+	
+	public ConDescriptor(String serveraddr, String clientaddr, short serverport, short clientport,
+			 			 int clientSYN){
+		super(serveraddr, serverport);
 		this.serveraddr = serveraddr;
 		this.clientaddr = clientaddr;
 		this.serverport = serverport;
 		this.clientport = clientport;
-		this.closeTimer = new EndConnectionTimer(30, this, clientList);
-		
+		ACK = 0;
 		serverSYN = 0;
-		
+		WINDOWSIZE = 5;
+		windowBegin = 0;
+		windowSend = 0;
 		connected = false;
 		
 	}
 	
-	public boolean equals(ConDescriptor b){
-		if (serveraddr.equals(b.serveraddr) && clientaddr.equals(b.clientaddr) 
-				&& serverport == b.serverport && clientport ==b.clientport)
-			return true;
-		else 
-			return false;
+	private void constructDataSegment(Object[] d, short[] dLength) {
+		dataLength = d.length;
+		windowEnd = min(windowBegin + WINDOWSIZE, d.length);
+		int tempSYN = serverSYN;
+		sendData = new DataSegment[d.length];
+		for(int i = 0; i < d.length; i++) {
+			sendData[i].data = d[i];
+			sendData[i].dataLength = dLength[i];
+			sendData[i].SYN = tempSYN;
+			tempSYN += dLength[i];
+			sendData[i].expectedSYN = tempSYN;
+		}
+	}
+	
+	public void send(Object[] d, short[] dLength) {
+		constructDataSegment(d, dLength);
+		
+		while (windowBegin < windowEnd) {
+			for (;windowSend < windowEnd; windowSend++) {
+				sendData[windowSend].timer = sendData(ACK, sendData[windowSend].SYN, 
+						clientaddr, clientport, sendData[windowSend].data, 
+						sendData[windowSend].dataLength, (char)3, 5);
+			}
+			moveWindow();
+		}		
+	}
+	
+	public void moveWindow() {
+		boolean moveFlag = false;
+		for (int i = windowBegin; i < windowEnd; i++) {
+			if (sendData[i].expectedSYN == tempACK) {
+				windowBegin = i + 1;
+				windowEnd = min(windowBegin + WINDOWSIZE, dataLength) - 1;
+				moveFlag = true;
+			}
+		}
+		
+		if (!moveFlag) {
+			windowSend = windowBegin;
+		}
+	}
+	
+	public void setTempACK(int val) {
+		tempACK = val;
+	}
+	
+	public Object[] getSendData() {
+		return sendData;
+	}
+	
+	public void setData(Datagram data) {
+		this.data = data;
+	}
+	
+	public Object readData() {
+		return data;
 	}
 	
 	public void runCloseTimer() {
@@ -110,5 +169,9 @@ public class ConDescriptor {
 	
 	public void setExpectSYN(int syn) {
 		expectSYN = syn;
+	}
+	
+	private int min(int a, int b) {
+		return a > b ? b : a;
 	}
 }
